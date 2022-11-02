@@ -1,0 +1,183 @@
+--------------------------------------------------------------------------------------------------
+------------------------------------------------SQL Test -----------------------------------------
+--------------------------------------------------------------------------------------------------
+
+
+CREATE TABLE #EMP
+    (
+      EmpId NVARCHAR(50) ,
+      EmpName NVARCHAR(100) ,
+      EmpDeptId INT ,
+      EmpMngrId INT ,
+      MonthSalary MONEY,
+         Email NVARCHAR(200)
+    );
+
+CREATE TABLE #DEPT
+    (
+      EmpDeptId INT ,
+      DeptName NVARCHAR(100)
+    );
+
+CREATE TABLE #Phones
+    (
+      EmpId INT ,
+      PrimaryPhone VARCHAR(50),
+         SecondaryPhone VARCHAR(50)
+    );
+
+INSERT INTO #EMP
+        ( EmpId ,
+          EmpName ,
+          EmpDeptId ,
+          EmpMngrId ,
+          MonthSalary,
+                Email
+        )
+VALUES  
+( '1' , 'Sivan' , '1' ,'11' , '6528','Sivan@malinator.com' ) ,
+( '2' , 'Omer' , '2' ,'12' ,  '8899','Omer@malinator.com' ) ,
+( '3' , 'Yussef' , '3' ,'13' , '5757','Yussef@malinator.com' ) ,
+( '4' , 'Dana' , '4' ,'14' , '8023','Dana@malinator.com' ) ,
+( '5' , 'Slavik' , '1' ,'11' , '9489','Slavik@gmail.com' ) ,
+( '6' , 'Aharon' , '3' ,'13' , '8661','Sivan@malinator.com' ) ,
+( '7' , 'Timna' , '4' ,'14' , '8808','Sivan@hotmail.com' ) ,
+( '8' , 'Mor' , '2' ,'12' , '8483','Mor@malinator.com' ) ,
+( '9' , 'Meital' , '1' ,'11' , '6425','Meital@malinator.com' ) ,
+( '10' , 'Karin' , '3' ,'13' , '11900','Karin@yahoo.com' ) ,
+( '11' , 'Galit' , '1' ,NULL , '33206','Galit@malinator.com' ) ,
+( '12' , 'Yuval' , '2' ,NULL , '18232','Yuval@outlook.com' ) ,
+( '13' , 'Natalie' , '3' ,NULL , '29785','Natalie@malinator.com' ) ,
+( '14' , 'Yair' , '4' ,NULL , '22492','Yair@malinator.com' ) 
+
+INSERT INTO #DEPT
+        ( EmpDeptId, DeptName )
+VALUES  
+( '1' , 'GBT' ) ,
+( '2' , 'Production Support' ) ,
+( '3' , 'Sales' ) ,
+( '4' , 'Customer Support' ) 
+
+
+INSERT INTO #Phones
+(
+    EmpId,
+    PrimaryPhone,
+    SecondaryPhone
+)
+VALUES
+(   1,'0544111111','031236512'),
+(   2,'0544111321','031236531'),
+(   3,'0544111789', NULL),
+(   4,'0544111852','031236589'),
+(   5,'0544111863', NULL),
+(   6,NULL,'031236522'),
+(   7,'0544111965','031236546'),
+(   8,'0544111345', NULL),
+(   9,'0544111861','031236501'),
+(   10,'0544111444','031236563'),
+(   11,'0544111220', NULL),
+(   12,NULL,'031236500'),
+(   13,'0544111820','031236575'),
+(   14,'0544111914', NULL)
+
+
+SELECT TOP 1000 * FROM #EMP WITH (NOLOCK)
+SELECT TOP 1000 * FROM #DEPT WITH (NOLOCK)
+SELECT TOP 1000 * FROM #Phones WITH (NOLOCK)
+
+
+-----------------------------------------------------------------------------------
+--------------------------------------Tasks ---------------------------------------
+-----------------------------------------------------------------------------------
+
+
+Please create the queries for the below tasks. 
+
+
+--1.   Present ALL employees that have 'malinator' email
+--2.   Present all employees of department ID 1,2 and 3 + display the Column name “MonthSalary” as “NetMonthSalary”.
+--3.   Present all employees that have only a primary phone number ordered by their salary, in a descending order.
+--4.   Which Department has the highest avarage salary per employee? (Not including bosses).
+--5.   For Each employee, what is the difference between each employee and the average salary of his department
+--6.   Update all employees emails to end with '@outlook123.com'  
+
+---- Bonus:
+
+--Create a new table that will contain the following data:
+Employee ID,
+Employee Name,
+Employee Department name ,
+Employee Email,
+Employee Primary Phone
+
+
+-----------------------------------------------------------------------------------
+--------------------------------------Answers -------------------------------------
+-----------------------------------------------------------------------------------
+
+1. SELECT *
+FROM #EMP
+WHERE Email LIKE '%@malinator.com'
+
+2. SELECT EmpName, MonthSalary AS NetMonthSalary
+FROM #EMP
+WHERE EmpDeptId <> 4 
+
+3. SELECT EmpName, MonthSalary
+FROM #EMP
+LEFT OUTER JOIN #Phones
+	ON #EMP.EmpID = #Phones.EmpID 
+	WHERE #Phones.SecondaryPhone IS NULL
+ORDER BY MonthSalary DESC
+
+4. SELECT DeptName, AVG(MonthSalary) as 'AverageMontlySalartyPerDepartment'
+FROM #EMP
+INNER JOIN #DEPT 
+	ON #EMP.EmpDeptId = #DEPT.EmpDeptId
+	WHERE #EMP.EmpMngrId IS NOT NULL
+	GROUP BY DeptName
+	ORDER BY AVG(MonthSalary)DESC
+
+5. SELECT a.EmpName,
+	DeptName,
+	a.MonthSalary,
+	FLOOR (a.MonthSalary - b.MonthSalary) as Salary_Difference
+FROM #EMP AS a
+INNER JOIN (
+	SELECT EmpDeptId, avg(MonthSalary) AS MonthSalary FROM #EMP WHERE #EMP.EmpMngrId IS NOT NULL GROUP BY EmpDeptId) AS b
+	ON a.EmpDeptId = b.EmpDeptId
+LEFT OUTER JOIN #DEPT
+	ON a.EmpDeptId = #DEPT.EmpDeptId 
+	ORDER BY DeptName
+
+6. UPDATE #EMP  SET Email = 
+ (SELECT SUBSTRING(Email, 0, PATINDEX('%@%',Email)) + '@outlook123.com' 
+ from #EMP U WHERE U.EmpId = #EMP.EmpId)
+
+
+---- Bonus:
+
+CREATE TABLE #NEW
+(
+      EmpId NVARCHAR(50) ,
+      EmpName NVARCHAR(100) ,
+      EmpDeptName NVARCHAR(50),
+      Email NVARCHAR(200),
+	  PrimaryPhone VARCHAR(50)
+    );
+
+INSERT INTO #NEW(EmpID, EmpName, Email)
+SELECT EmpID, EmpName, Email
+FROM #EMP
+
+UPDATE #NEW 
+SET #NEW.PrimaryPhone = P.PrimaryPhone
+from #Phones p
+WHERE p.EmpId = #NEW.EmpId ;
+
+UPDATE #NEW 
+SET #NEW.EmpDeptName = d.DeptName
+from #DEPT d
+INNER JOIN #EMP e ON e.EmpDeptId = d.EmpDeptId
+where e.EmpId = #NEW.EmpId
